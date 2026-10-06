@@ -1,0 +1,654 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Portside Digital — Websites that work · Trinidad &amp; Tobago</title>
+<meta name="description" content="Portside Digital builds fast, beautiful websites for businesses in Trinidad & Tobago, with booking, ordering and WhatsApp built in. From TT$1,500.">
+<meta name="theme-color" content="#0B1F3A">
+<meta property="og:title" content="Portside Digital — Websites that work">
+<meta property="og:description" content="Websites for Trinidad & Tobago businesses. See the work, then chat on WhatsApp.">
+<meta property="og:image" content="assets/og.jpg">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26.4 30'%3E%3Crect width='10' height='30' rx='2.4' fill='%230B1F3A'/%3E%3Cpath d='M13.8 0H18.2A8.2 8.2 0 0 1 18.2 16.4H13.8A2.4 2.4 0 0 1 11.4 14V2.4A2.4 2.4 0 0 1 13.8 0Z' fill='%2300B3A6'/%3E%3Crect x='11.4' y='17.8' width='6.6' height='6.6' rx='2' fill='%23FF6B5E'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/SplitText.min.js"></script>
+<script src="https://unpkg.com/lenis@1.3.4/dist/lenis.min.js"></script>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+<style>
+:root{
+  --navy:#0B1F3A; --navy2:#071528; --teal:#00B3A6; --coral:#FF6B5E; --paper:#F4F6FA;
+  --ink:#0B1F3A; --white:#fff; --dim:rgba(255,255,255,.72); --line:rgba(255,255,255,.16);
+  --pad:clamp(18px,3.4vw,52px);
+  --silk:cubic-bezier(.19,1,.22,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--navy2)}
+html.lenis,html.lenis body{height:auto}
+body{font-family:Inter,system-ui,sans-serif;color:#fff;background:var(--navy2);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body.loading{overflow:hidden;height:100svh}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+::selection{background:var(--teal);color:var(--navy)}
+
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:0}
+.shade{position:fixed;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(7,21,40,.55) 0%,rgba(7,21,40,0) 26%,rgba(7,21,40,0) 62%,rgba(7,21,40,.7) 100%)}
+.grain{position:fixed;inset:-50%;width:200%;height:200%;z-index:60;pointer-events:none;opacity:.05;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");animation:grain 1s steps(6) infinite}
+@keyframes grain{0%,100%{transform:translate(0,0)}20%{transform:translate(-5%,4%)}40%{transform:translate(4%,-6%)}60%{transform:translate(-8%,-2%)}80%{transform:translate(6%,7%)}}
+
+/* loader */
+.loader{position:fixed;inset:0;z-index:100;background:var(--navy2);display:grid;place-items:center}
+.ld{display:flex;flex-direction:column;align-items:center;gap:26px}
+.ld svg{width:66px;height:75px}
+.ld svg *{transform-box:fill-box;transform-origin:50% 100%}
+.ld-t{font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.24em;text-transform:uppercase;color:var(--dim)}
+.ld-bar{width:200px;height:2px;background:var(--line);overflow:hidden}
+.ld-bar i{display:block;height:100%;background:var(--teal);transform-origin:0 50%;transform:scaleX(0)}
+
+/* nav */
+.nav{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;justify-content:space-between;align-items:center;padding:calc(var(--pad)*.6) var(--pad);transition:transform .7s var(--silk)}
+.nav.hide{transform:translateY(-120%)}
+.logo{display:flex;align-items:center;gap:12px;font:800 22px/1 Sora,sans-serif;letter-spacing:-.04em}
+.logo svg{width:24px;height:27px}
+.logo i{font-style:normal;color:var(--teal)}
+.nav-r{display:flex;align-items:center;gap:6px}
+.nav-l{display:flex;gap:4px;padding:5px;border-radius:999px;background:rgba(7,21,40,.35);border:1px solid var(--line);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.nav-l a{padding:9px 16px;border-radius:999px;font-size:14px;font-weight:500;color:var(--dim);transition:color .3s,background .3s}
+.nav-l a:hover{color:#fff;background:rgba(255,255,255,.08)}
+.wa{display:inline-flex;align-items:center;gap:10px;padding:12px 20px;border-radius:999px;background:#25D366;color:#05210f;font-weight:700;font-size:14px;will-change:transform;box-shadow:0 10px 30px rgba(37,211,102,.25)}
+.wa svg{width:18px;height:18px}
+
+/* hero */
+.hero{position:relative;z-index:2;height:100svh;min-height:620px;display:flex;flex-direction:column;justify-content:flex-end;padding:0 var(--pad) calc(var(--pad)*1.2)}
+.kick{font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.22em;text-transform:uppercase;color:var(--dim)}
+.h1{margin-top:20px;font:800 clamp(52px,9.4vw,152px)/.9 Sora,sans-serif;letter-spacing:-.055em;max-width:12ch}
+.h1 .u{color:var(--coral);position:relative;display:inline-block}
+.h1 .u::after{content:'';position:absolute;left:2%;right:2%;bottom:.04em;height:.09em;border-radius:99px;background:var(--coral);opacity:.45;transform-origin:0 50%;transform:scaleX(var(--ul,1))}
+.hero-b{margin-top:28px;display:flex;justify-content:space-between;align-items:flex-end;gap:30px;flex-wrap:wrap}
+.lede{max-width:46ch;font-size:clamp(16px,1.25vw,19px);line-height:1.55;color:var(--dim)}
+.lede b{color:#fff;font-weight:600}
+.ctas{display:flex;gap:12px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:16px 24px;border-radius:999px;font-weight:600;font-size:15px;will-change:transform}
+.btn-ghost{border:1px solid rgba(255,255,255,.3);background:rgba(7,21,40,.25);backdrop-filter:blur(10px)}
+.loc{position:absolute;right:var(--pad);top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:flex-end;gap:8px;font:500 11px/1.5 'JetBrains Mono',monospace;letter-spacing:.14em;color:var(--dim);text-align:right}
+.loc b{color:#fff;font-weight:500}
+
+/* pins over the 3D map */
+#pins{position:fixed;inset:0;z-index:3;pointer-events:none}
+body:not(.flying) #pins{visibility:hidden}
+.pin{position:absolute;left:0;top:0;transform:translate3d(-999px,-999px,0);will-change:transform;pointer-events:auto}
+.pin .dot{position:absolute;left:-7px;top:-7px;width:14px;height:14px;border-radius:50%;background:var(--coral);box-shadow:0 0 0 4px rgba(255,107,94,.28),0 0 24px rgba(255,107,94,.8)}
+.pin .dot::after{content:'';position:absolute;inset:-10px;border-radius:50%;border:1.5px solid rgba(255,107,94,.7);animation:ping 2.4s var(--silk) infinite}
+@keyframes ping{0%{transform:scale(.4);opacity:1}100%{transform:scale(1.6);opacity:0}}
+.pin .stem{position:absolute;left:-.5px;bottom:7px;width:1px;height:46px;background:linear-gradient(to top,rgba(255,255,255,.7),rgba(255,255,255,0))}
+.pin .tag{position:absolute;left:12px;bottom:40px;white-space:nowrap;padding:8px 12px;border-radius:10px;background:rgba(7,21,40,.62);border:1px solid var(--line);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font:600 13px/1.1 Inter;transition:background .4s,border-color .4s,transform .5s var(--silk)}
+.pin .tag small{display:block;margin-top:3px;font:400 11px/1 'JetBrains Mono',monospace;letter-spacing:.08em;color:var(--dim)}
+.pin .tag,.pin .stem{opacity:0;transition:opacity .4s,background .4s,border-color .4s,transform .5s var(--silk)}
+.pin:hover .tag,.pin:hover .stem,body.flying .pin.on .tag,body.flying .pin.on .stem{opacity:1}
+.pin.on .tag{background:var(--teal);border-color:var(--teal);color:var(--navy);transform:scale(1.08)}
+.pin.on .tag small{color:rgba(11,31,58,.75)}
+.pin.on .dot{background:#fff}
+
+/* work: pinned fly-through */
+.work{position:relative;z-index:2;height:100svh}
+.work-head{position:absolute;left:var(--pad);top:calc(var(--pad)*2.4)}
+.work-head h2{margin-top:14px;font:800 clamp(36px,4.6vw,72px)/.95 Sora;letter-spacing:-.045em}
+.work-head h2 i{font-style:normal;color:var(--teal)}
+.card{position:absolute;left:var(--pad);bottom:var(--pad);width:min(470px,calc(100vw - var(--pad)*2));border-radius:26px;background:rgba(7,21,40,.72);border:1px solid var(--line);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.45)}
+.card .shot{position:relative;height:250px;overflow:hidden;background:#000}
+.card .shot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top}
+.card .shot .ph{position:absolute;right:16px;bottom:-40px;width:96px;height:auto;aspect-ratio:9/19.5;object-fit:cover;object-position:top;border-radius:16px;border:5px solid #0d0d10;box-shadow:0 14px 34px rgba(0,0,0,.5);left:auto;top:auto}
+.card .body{padding:22px 24px 24px}
+.card .meta{display:flex;justify-content:space-between;font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+.card .meta .cb{color:var(--coral)}
+.card h3{margin-top:12px;font:800 32px/1 Sora;letter-spacing:-.04em}
+.card p{margin-top:10px;font-size:15px;line-height:1.55;color:var(--dim)}
+.chips{margin-top:14px;display:flex;flex-wrap:wrap;gap:6px}
+.chips span{padding:7px 11px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid var(--line);font-size:12.5px;font-weight:500}
+.card .go{margin-top:18px;display:inline-flex;align-items:center;gap:10px;padding:13px 20px;border-radius:999px;background:var(--teal);color:var(--navy);font-weight:700;font-size:14px}
+.prog{position:absolute;right:var(--pad);bottom:var(--pad);display:flex;flex-direction:column;align-items:flex-end;gap:10px;font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:var(--dim)}
+.prog .n{font:800 46px/1 Sora;color:#fff;letter-spacing:-.04em}
+.prog .bars{display:flex;gap:5px}
+.prog .bars i{width:22px;height:3px;border-radius:2px;background:var(--line)}
+.prog .bars i.on{background:var(--teal)}
+
+/* paper sections */
+.paper{position:relative;z-index:4;background:var(--paper);color:var(--ink);border-radius:36px 36px 0 0;margin-top:-1px}
+.sec{padding:clamp(80px,12vw,160px) var(--pad)}
+.eyebrow{font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.22em;text-transform:uppercase;color:#5b6b82}
+.h2{margin-top:16px;font:800 clamp(40px,6vw,96px)/.95 Sora;letter-spacing:-.05em;max-width:14ch}
+.h2 i{font-style:normal;color:var(--teal)}
+.price{margin-top:60px;display:grid;grid-template-columns:1.1fr 1fr;gap:40px;align-items:start}
+.price-big{padding:40px;border-radius:30px;background:var(--navy);color:#fff;position:relative;overflow:hidden}
+.price-big::after{content:'';position:absolute;right:-80px;top:-80px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(0,179,166,.5),transparent 70%)}
+.price-big .from{font:500 13px/1 'JetBrains Mono',monospace;letter-spacing:.18em;color:var(--dim);text-transform:uppercase}
+.price-big .amt{margin-top:14px;font:800 clamp(64px,8vw,120px)/.9 Sora;letter-spacing:-.06em}
+.price-big .amt small{font-size:.34em;letter-spacing:-.02em;color:var(--teal);margin-right:8px;vertical-align:.9em}
+.price-big p{margin-top:16px;max-width:36ch;color:var(--dim);line-height:1.55}
+.incl{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.incl div{padding:22px;border-radius:20px;background:#fff;border:1px solid #e3e8f0}
+.incl b{display:block;font:700 17px/1.2 Sora;letter-spacing:-.02em}
+.incl span{display:block;margin-top:6px;font-size:14px;line-height:1.5;color:#51617a}
+.incl div:nth-child(3n+1) b::before{content:'';display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--teal);margin-right:10px}
+.incl div:nth-child(3n+2) b::before{content:'';display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--coral);margin-right:10px}
+.incl div:nth-child(3n) b::before{content:'';display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--navy);margin-right:10px}
+.steps{margin-top:60px;display:grid;grid-template-columns:repeat(3,1fr);gap:20px;counter-reset:s}
+.step{padding:30px;border-radius:24px;border:1px solid #dbe2ec;background:#fff}
+.step::before{counter-increment:s;content:'0' counter(s);font:800 54px/1 Sora;letter-spacing:-.05em;color:var(--teal)}
+.step h4{margin-top:18px;font:700 22px/1.15 Sora;letter-spacing:-.03em}
+.step p{margin-top:8px;color:#51617a;line-height:1.55}
+.end{padding:clamp(90px,12vw,170px) var(--pad) var(--pad);background:var(--navy);color:#fff;border-radius:36px 36px 0 0;position:relative;overflow:hidden}
+.end .h2{color:#fff;max-width:13ch}
+.end .row{margin-top:40px;display:flex;justify-content:space-between;align-items:flex-end;gap:30px;flex-wrap:wrap}
+.end .wa{padding:22px 32px;font-size:18px}
+.end .wa svg{width:24px;height:24px}
+.end .num{font:500 13px/1.6 'JetBrains Mono',monospace;letter-spacing:.12em;color:var(--dim)}
+.foot{margin-top:110px;padding-top:26px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;font-size:12.5px;line-height:1.6;color:var(--dim)}
+.foot a{color:#fff;border-bottom:1px solid var(--line)}
+.split .w{display:inline-block;overflow:hidden;vertical-align:top;padding-bottom:.08em;margin-bottom:-.08em}
+.split .w>span{display:inline-block}
+
+@media (max-width:820px){
+  .nav-l{display:none}
+  .wa{padding:11px 16px}
+  .loc{display:none}
+  .hero-b{flex-direction:column;align-items:flex-start}
+  .work-head{top:calc(var(--pad)*4.4)}
+  .work-head h2{font-size:30px}
+  .card{left:12px;right:12px;width:auto;bottom:12px}
+  .card .shot{height:170px}
+  .card .shot .ph{width:70px}
+  .card .body{padding:16px 18px 18px}
+  .card h3{font-size:26px}
+  .card p{font-size:14px}
+  .prog{top:calc(var(--pad)*4.4);bottom:auto}
+  .prog .n{font-size:30px}
+  .price{grid-template-columns:1fr}
+  .incl{grid-template-columns:1fr}
+  .steps{grid-template-columns:1fr}
+  .pin .tag{font-size:12px;padding:6px 9px}
+}
+@media (prefers-reduced-motion:reduce){.grain,.pin .dot::after{animation:none}}
+</style>
+</head>
+<body class="loading">
+
+<canvas id="gl" aria-hidden="true"></canvas>
+<div class="shade" aria-hidden="true"></div>
+<div id="pins" aria-hidden="true"></div>
+<div class="grain" aria-hidden="true"></div>
+
+<div class="loader" id="loader">
+  <div class="ld">
+    <svg viewBox="0 0 26.4 30"><rect class="m1" width="10" height="30" rx="2.4" fill="#fff"/><path class="m2" d="M13.8 0H18.2A8.2 8.2 0 0 1 18.2 16.4H13.8A2.4 2.4 0 0 1 11.4 14V2.4A2.4 2.4 0 0 1 13.8 0Z" fill="#00B3A6"/><rect class="m3" x="11.4" y="17.8" width="6.6" height="6.6" rx="2" fill="#FF6B5E"/></svg>
+    <div class="ld-t" id="ldT">Loading Trinidad &amp; Tobago</div>
+    <div class="ld-bar"><i id="ldBar"></i></div>
+  </div>
+</div>
+
+<header class="nav" id="nav">
+  <a class="logo" href="#top" aria-label="Portside Digital"><svg viewBox="0 0 26.4 30"><rect width="10" height="30" rx="2.4" fill="#fff"/><path d="M13.8 0H18.2A8.2 8.2 0 0 1 18.2 16.4H13.8A2.4 2.4 0 0 1 11.4 14V2.4A2.4 2.4 0 0 1 13.8 0Z" fill="#00B3A6"/><rect x="11.4" y="17.8" width="6.6" height="6.6" rx="2" fill="#FF6B5E"/></svg>Portside <i>Digital</i></a>
+  <div class="nav-r">
+    <nav class="nav-l" aria-label="Sections"><a href="#work">Work</a><a href="#pricing">Pricing</a><a href="#process">Process</a></nav>
+    <a class="wa" href="https://wa.me/18682591409?text=Hi%20Portside%2C%20I%20saw%20your%20portfolio" target="_blank" rel="noopener" data-mag>
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.4.1-.7.3-.2.3-.9.9-.9 2.2s.9 2.6 1.1 2.7c.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.6-.3z"/></svg>WhatsApp</a>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <p class="kick">Portside Digital — web design · Trinidad &amp; Tobago</p>
+    <h1 class="h1 split">Websites that <span class="u">work.</span></h1>
+    <div class="hero-b">
+      <p class="lede">Fast, beautiful websites for Trinidad &amp; Tobago businesses, with <b>booking, ordering and WhatsApp built in</b>. Scroll to fly over the islands and see the builds.</p>
+      <div class="ctas">
+        <a class="btn btn-ghost" href="#work" data-mag>See the work ↓</a>
+        <a class="wa" href="https://wa.me/18682591409?text=Hi%20Portside%2C%20I%20saw%20your%20portfolio" target="_blank" rel="noopener" data-mag><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.4.1-.7.3-.2.3-.9.9-.9 2.2s.9 2.6 1.1 2.7c.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.6-.3z"/></svg>Chat on WhatsApp</a>
+      </div>
+    </div>
+    <div class="loc"><span><b>10.6918° N</b></span><span><b>61.2225° W</b></span><span>Trinidad &amp; Tobago</span><span id="alt">Altitude 52 km</span></div>
+  </section>
+
+  <section class="work" id="work">
+    <div class="work-head"><p class="kick">The work</p><h2>Seven builds,<br><i>one island nation.</i></h2></div>
+    <article class="card" id="card">
+      <div class="shot"><img id="cShot" alt=""><img class="ph" id="cPh" alt=""></div>
+      <div class="body">
+        <div class="meta"><span id="cKind"></span><span class="cb">Concept build</span></div>
+        <h3 id="cName"></h3>
+        <p id="cDesc"></p>
+        <div class="chips" id="cChips"></div>
+        <a class="go" id="cGo" target="_blank" rel="noopener" data-mag>Open the live site ↗</a>
+      </div>
+    </article>
+    <div class="prog"><span id="cLoc"></span><span class="n" id="cN">01</span><div class="bars" id="cBars"></div></div>
+  </section>
+</main>
+
+<div class="paper">
+  <section class="sec" id="pricing">
+    <p class="eyebrow">Pricing</p>
+    <h2 class="h2 split">One price to start. <i>No surprises.</i></h2>
+    <div class="price">
+      <div class="price-big">
+        <div class="from">Websites from</div>
+        <div class="amt"><small>TT$</small>1,500</div>
+        <p>A custom site designed for your business, built mobile-first and put live for you. Bigger builds like booking systems, online ordering and 3D work are quoted on WhatsApp.</p>
+      </div>
+      <div class="incl">
+        <div><b>Designed for you</b><span>No templates. Your brand, your photos, your words.</span></div>
+        <div><b>Mobile-first</b><span>Most of your customers are on phones, so it's built for them first.</span></div>
+        <div><b>WhatsApp built in</b><span>Every page can start a chat with your business.</span></div>
+        <div><b>Bookings &amp; orders</b><span>Calendars, menus, quotes and sign-ups that work.</span></div>
+        <div><b>Fast &amp; findable</b><span>Quick to load, with the basics Google needs to list you.</span></div>
+        <div><b>Put live for you</b><span>Domain and hosting set up, and we show you how to update it.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="process" style="padding-top:0">
+    <p class="eyebrow">Process</p>
+    <h2 class="h2 split">From a chat to <i>live.</i></h2>
+    <div class="steps">
+      <div class="step"><h4>Talk</h4><p>Message us on WhatsApp. Tell us about your business, who your customers are and what the site needs to do.</p></div>
+      <div class="step"><h4>Design</h4><p>We build a preview you can click through on your own phone, then refine it with you until it feels right.</p></div>
+      <div class="step"><h4>Launch</h4><p>We put it live on your domain, hook up WhatsApp and bookings, and show you how to keep it updated.</p></div>
+    </div>
+  </section>
+
+  <section class="end" id="contact">
+    <p class="kick">Let's build yours</p>
+    <h2 class="h2 split">Your business, <i>on the map.</i></h2>
+    <div class="row">
+      <a class="wa" href="https://wa.me/18682591409?text=Hi%20Portside%2C%20I%27d%20like%20a%20website" target="_blank" rel="noopener" data-mag><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.4.1-.7.3-.2.3-.9.9-.9 2.2s.9 2.6 1.1 2.7c.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.6-.3z"/></svg>Chat on WhatsApp</a>
+      <p class="num">WhatsApp 868-259-1409<br>Trinidad &amp; Tobago</p>
+    </div>
+    <footer class="foot">
+      <span>© 2026 Portside Digital. All projects shown are concept builds for fictional businesses.</span>
+      <span>3D map: elevation from <a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">AWS Terrain Tiles</a> (SRTM, ETOPO1 and others) · imagery <a href="https://s2maps.eu" target="_blank" rel="noopener">Sentinel-2 cloudless</a> by EOX IT Services GmbH (contains modified Copernicus Sentinel data 2016), CC BY 4.0.</span>
+    </footer>
+  </section>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { Sky } from 'three/addons/objects/Sky.js';
+
+const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const MOBILE = innerWidth < 820 || matchMedia('(pointer: coarse)').matches;
+const Q = new URLSearchParams(location.search);
+const DPR = Q.has('dpr') ? +Q.get('dpr') : Math.min(devicePixelRatio || 1, MOBILE ? 1.5 : 2);
+gsap.registerPlugin(ScrollTrigger, SplitText);
+
+/* ================================================================ */
+/*  The projects, placed where they'd be on the map                  */
+/* ================================================================ */
+const BASE = 'https://werty573.github.io';
+const WORK = [
+  { k: 'tamarind', name: 'Tamarind Table', kind: 'Restaurant & rum bar', where: 'Ariapita Ave, Port of Spain', lon: -61.524, lat: 10.664, url: BASE + '/tamarind-table/',
+    desc: 'Trini home cooking and a long table on Ariapita Avenue. A scroll-pinned menu and a reservation form that takes bookings without an app.', chips: ['Scroll-pinned menu', 'Reservations', 'WhatsApp'] },
+  { k: 'marea', name: 'MAREA', kind: 'Fragrance house', where: 'Maraval, Port of Spain', lon: -61.531, lat: 10.708, url: BASE + '/marea/',
+    desc: 'A Caribbean perfume house with a photoreal 3D bottle that follows your cursor, a scroll-driven story and a scent switch that restyles the whole site.', chips: ['Real-time 3D', 'Scroll story', 'One-click restyle'] },
+  { k: 'gilded', name: 'Gilded Hour', kind: 'Weddings & events', where: 'Maracas Bay', lon: -61.43, lat: 10.757, url: BASE + '/gilded-hour/',
+    desc: 'Weddings across both islands. A hover gallery that opens like a fan and an enquiry form that sends couples straight to the planner.', chips: ['Hover gallery', 'Enquiry form', 'Process timeline'] },
+  { k: 'soda', name: 'Soda', kind: 'Drinks brand', where: 'Chaguanas', lon: -61.411, lat: 10.517, url: BASE + '/marea/soda/',
+    desc: 'A photoreal 3D can with real condensation, cherries that dodge your cursor, and a flavour switch that changes the can, the fruit and the whole page.', chips: ['3D product', 'Configurator', 'Cursor physics'] },
+  { k: 'gloss', name: 'Gloss Lab', kind: 'Car detailing', where: 'Couva, Central Trinidad', lon: -61.46, lat: 10.42, url: BASE + '/gloss-lab/',
+    desc: 'Mobile detailing that comes to you. A before/after wipe that sells the job, stacked packages and an instant quote that updates as you pick.', chips: ['Before / after', 'Instant quote', 'Booking'] },
+  { k: 'pulse', name: 'Pulse Yard', kind: 'Gym', where: 'San Fernando', lon: -61.468, lat: 10.279, url: BASE + '/pulse-yard/',
+    desc: 'A strength gym in San Fernando. A day-by-day class timetable, membership plans and a free-week sign-up that checks the details before it sends.', chips: ['Class timetable', 'Lead form', 'Memberships'] },
+  { k: 'leeward', name: 'Leeward House', kind: 'Villa rental', where: 'Black Rock, Tobago', lon: -60.806, lat: 11.205, url: BASE + '/leeward-house/',
+    desc: 'A villa on Tobago’s leeward coast that takes bookings direct. Pick dates on a live calendar and the nights, cleaning and total add themselves up.', chips: ['Live calendar', 'Instant pricing', 'Direct bookings'] },
+];
+
+/* ================================================================ */
+/*  Scene                                                           */
+/* ================================================================ */
+const canvas = $('#gl');
+const R = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+R.setPixelRatio(DPR);
+R.toneMapping = THREE.ACESFilmicToneMapping;
+R.toneMappingExposure = .62;
+R.shadowMap.enabled = !MOBILE;
+R.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(36, 1, .1, 4000);
+
+// world: 1 unit = 1 km; heights exaggerated ×3.2 so the Northern Range reads from altitude
+const META = { bbox: [-61.93, 10.02, -60.47, 11.38], km: [159.7, 150.38], exag: 3.2 };
+const [W, S, E, N] = META.bbox, SX = META.km[0], SZ = META.km[1], HS = META.exag / 1000;
+const toXZ = (lon, lat) => [(lon - W) / (E - W) * SX - SX / 2, (N - lat) / (N - S) * SZ - SZ / 2];
+
+// golden-hour sun from the west-south-west: long shadows off the Northern Range
+const sun = new THREE.Vector3().setFromSphericalCoords(1, THREE.MathUtils.degToRad(90 - 13), THREE.MathUtils.degToRad(-112));
+const sky = new Sky();
+sky.scale.setScalar(3000);
+Object.assign(sky.material.uniforms.turbidity, { value: 6 });
+sky.material.uniforms.rayleigh.value = 1.6;
+sky.material.uniforms.mieCoefficient.value = .006;
+sky.material.uniforms.mieDirectionalG.value = .82;
+sky.material.uniforms.sunPosition.value.copy(sun);
+scene.add(sky);
+const pmrem = new THREE.PMREMGenerator(R);
+const skyScene = new THREE.Scene(); const skyCopy = new Sky(); skyCopy.scale.setScalar(3000); skyCopy.material = sky.material; skyScene.add(skyCopy);
+scene.environment = pmrem.fromScene(skyScene, 0, .1, 4000).texture;
+scene.environmentIntensity = .55;
+const haze = new THREE.Color('#a9bccd');
+scene.fog = new THREE.FogExp2(haze, MOBILE ? .0026 : .0022);
+
+const sunLight = new THREE.DirectionalLight('#ffd9a8', 4.2);
+sunLight.position.copy(sun).multiplyScalar(200);
+sunLight.castShadow = !MOBILE;
+sunLight.shadow.mapSize.set(4096, 4096);
+Object.assign(sunLight.shadow.camera, { left: -95, right: 95, top: 95, bottom: -95, near: 10, far: 500 });
+sunLight.shadow.bias = -.0004; sunLight.shadow.normalBias = .04;
+scene.add(sunLight, sunLight.target);
+scene.add(new THREE.HemisphereLight('#9fc4ff', '#2c3a2a', .5));
+
+/* ---------- textures ---------- */
+const loader = new THREE.TextureLoader();
+const loads = [];
+const tex = (url, srgb) => { const p = new Promise(res => loader.load(url, t => { t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace; t.anisotropy = R.capabilities.getMaxAnisotropy(); res(t); }, undefined, () => res(null))); loads.push(p); return p; };
+const pSat = tex(MOBILE ? 'assets/tt/sat-m.jpg' : 'assets/tt/sat.jpg', true);
+const pNrm = tex('assets/tt/normal.png', false);
+const pData = tex('assets/tt/data.png', false);
+const pHeight = fetch('assets/tt/height.bin').then(r => r.arrayBuffer()).then(b => new Int16Array(b));
+loads.push(pHeight);
+let done = 0; loads.forEach(p => p.then(() => { done++; $('#ldBar').style.transform = `scaleX(${done / loads.length})`; }));
+
+/* ---------- shared GLSL: cloud shadows drifting across land and sea ---------- */
+const CLOUDS = /* glsl */`
+float h21(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p+45.32); return fract(p.x*p.y); }
+float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f);
+  return mix(mix(h21(i), h21(i+vec2(1,0)), f.x), mix(h21(i+vec2(0,1)), h21(i+vec2(1,1)), f.x), f.y); }
+float fbm(vec2 p){ float a = .5, s = 0.; for (int i = 0; i < 5; i++){ s += a*vn(p); p = p*2.03 + 17.1; a *= .5; } return s; }
+float cloudShadow(vec2 xz, float t){ float c = fbm(xz*.045 + vec2(t*.012, t*.006)); return smoothstep(.56, .74, c); }`;
+
+/* ---------- terrain ---------- */
+let terrain, water, heights;
+const GRID = 512, SEG = MOBILE ? 255 : 511;
+function heightAt(x, z) {
+  if (!heights) return 0;
+  const u = (x + SX / 2) / SX * (GRID - 1), v = (z + SZ / 2) / SZ * (GRID - 1);
+  const i = Math.max(0, Math.min(GRID - 2, Math.floor(u))), j = Math.max(0, Math.min(GRID - 2, Math.floor(v)));
+  const fu = Math.min(1, Math.max(0, u - i)), fv = Math.min(1, Math.max(0, v - j));
+  const h = (a, b) => heights[b * GRID + a];
+  return ((h(i, j) * (1 - fu) + h(i + 1, j) * fu) * (1 - fv) + (h(i, j + 1) * (1 - fu) + h(i + 1, j + 1) * fu) * fv) * HS;
+}
+const U = { uTime: { value: 0 } };
+
+Promise.all([pSat, pNrm, pData, pHeight]).then(([sat, nrm, data, h]) => {
+  heights = h;
+  // the land/sea mask must never be mip-blurred: at glancing angles that smears land over the sea and hides the water
+  data.flipY = false; data.generateMipmaps = false; data.minFilter = THREE.LinearFilter; data.anisotropy = 1; data.needsUpdate = true;
+  // terrain mesh
+  const g = new THREE.PlaneGeometry(SX, SZ, SEG, SEG);
+  g.rotateX(-Math.PI / 2);
+  const pos = g.attributes.position;
+  for (let i = 0; i < pos.count; i++) pos.setY(i, heightAt(pos.getX(i), pos.getZ(i)));
+  g.computeVertexNormals();
+  const mat = new THREE.MeshStandardMaterial({ map: sat, normalMap: nrm, normalScale: new THREE.Vector2(1.1, 1.1), roughness: .92, metalness: 0, envMapIntensity: .6 });
+  mat.onBeforeCompile = sh => {
+    sh.uniforms.uTime = U.uTime;
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vW;').replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvW = (modelMatrix * vec4(transformed, 1.)).xyz;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vW;\nuniform float uTime;\n' + CLOUDS)
+      .replace('#include <map_fragment>', `#include <map_fragment>
+        // lush grade + wet sand at the waterline + drifting cloud shadow
+        diffuseColor.rgb = pow(diffuseColor.rgb, vec3(1.06)) * vec3(1.02, 1.05, .95);
+        diffuseColor.rgb *= 1. - cloudShadow(vW.xz, uTime) * .45;`);
+  };
+  terrain = new THREE.Mesh(g, mat);
+  terrain.castShadow = terrain.receiveShadow = !MOBILE;
+  scene.add(terrain);
+
+  // sea: depth-tinted from real bathymetry, waves, sun glint, sky reflection, shoreline foam
+  const wg = new THREE.PlaneGeometry(3600, 3600, 1, 1); wg.rotateX(-Math.PI / 2);
+  const wm = new THREE.ShaderMaterial({
+    uniforms: { ...U, tData: { value: data }, uSize: { value: new THREE.Vector2(SX, SZ) }, uSun: { value: sun }, uHaze: { value: haze }, uFogD: { value: scene.fog.density } },
+    vertexShader: `varying vec3 vW; void main(){ vec4 w = modelMatrix*vec4(position,1.); vW = w.xyz; gl_Position = projectionMatrix*viewMatrix*w; }`,
+    fragmentShader: /* glsl */`
+      uniform sampler2D tData; uniform vec2 uSize; uniform vec3 uSun, uHaze; uniform float uTime, uFogD;
+      varying vec3 vW;
+      ${CLOUDS}
+      vec2 wave(vec2 p, float t){
+        // two layers of value-noise ripples, differentiated for a normal
+        float e = .05;
+        float a = fbm(p*.9 + vec2(t*.08, t*.05)) + .5*fbm(p*2.7 - vec2(t*.11, -t*.07));
+        float bx = fbm((p+vec2(e,0.))*.9 + vec2(t*.08, t*.05)) + .5*fbm((p+vec2(e,0.))*2.7 - vec2(t*.11, -t*.07));
+        float bz = fbm((p+vec2(0.,e))*.9 + vec2(t*.08, t*.05)) + .5*fbm((p+vec2(0.,e))*2.7 - vec2(t*.11, -t*.07));
+        return vec2(bx - a, bz - a) / e;
+      }
+      void main(){
+        vec2 uv = (vW.xz + uSize*.5) / uSize;
+        float inside = step(0., uv.x) * step(uv.x, 1.) * step(0., uv.y) * step(uv.y, 1.);
+        vec4 d = texture2D(tData, clamp(uv, 0., 1.));
+        // fade the measured sea floor into open ocean before the data runs out, so there is no visible edge
+        float edge = smoothstep(0., .3, min(min(uv.x, 1. - uv.x), min(uv.y, 1. - uv.y)));
+        float depth = mix(.72, d.r, inside * edge), land = d.g * inside;
+        if (land > .5) discard;
+        vec3 V = normalize(cameraPosition - vW);
+        float dist = length(cameraPosition - vW);
+        // fine wind ripples on top of a long, low swell; both fade with distance so the far sea stays calm
+        vec2 sl = wave(vW.xz * 7., uTime * 1.6) * mix(.07, .012, smoothstep(10., 160., dist)) + wave(vW.xz * .55, uTime * .5) * .05;
+        vec3 Nn = normalize(vec3(-sl.x, 1., -sl.y));
+        // body colour from real depth: turquoise shelf → teal → deep Atlantic blue
+        vec3 shallow = vec3(.12, .62, .58), mid = vec3(.03, .28, .36), deep = vec3(.01, .07, .15);
+        vec3 body = mix(shallow, mid, smoothstep(.0, .35, depth));
+        body = mix(body, deep, smoothstep(.3, .85, depth));
+        body = mix(body, vec3(.36, .44, .32), smoothstep(.05, .0, depth) * inside * .3);   // silty Gulf shallows
+        body *= 1. - cloudShadow(vW.xz, uTime) * .35;
+        // sky reflection + fresnel
+        vec3 Rf = reflect(-V, Nn);
+        float fres = .02 + .7 * pow(1. - max(dot(Nn, V), 0.), 5.);
+        vec3 skyc = mix(vec3(.78, .66, .56), vec3(.32, .46, .66), smoothstep(-.02, .45, Rf.y));
+        // the sun on the water: a hot core and a broad warm path
+        float sd = max(dot(Rf, uSun), 0.);
+        vec3 glint = vec3(1., .82, .6) * (pow(sd, 900.) * 40. + pow(sd, 60.) * .9);
+        vec3 c = mix(body, skyc, fres) + glint;
+        // foam where swell meets the coast
+        float shore = smoothstep(.035, .0, depth) * inside * (1. - land);
+        float fn = fbm(vW.xz * 4. + vec2(uTime * .25, 0.));
+        c = mix(c, vec3(.92), shore * smoothstep(.55, .85, fn + shore * .4) * .45);
+        // aerial perspective
+        float f = 1. - exp(-pow(uFogD * dist, 2.));
+        c = mix(c, uHaze * 1.05, f);
+        gl_FragColor = vec4(c, 1.);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`,
+  });
+  water = new THREE.Mesh(wg, wm);
+  water.position.y = .006;   // ~2 m: covers the satellite's dark coastal fringe; land is cut out by the mask
+  scene.add(water);
+  boot();
+});
+
+/* ---------- a few soft cumulus clouds for depth ---------- */
+function cloudTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
+  for (let i = 0; i < 26; i++) {
+    const x = 128 + (Math.random() - .5) * 140, y = 140 + (Math.random() - .5) * 60, r = 28 + Math.random() * 46;
+    const gr = g.createRadialGradient(x, y, 0, x, y, r);
+    gr.addColorStop(0, 'rgba(255,255,255,.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+  }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const clouds = [];
+function addClouds() {
+  const t = cloudTexture();
+  const n = MOBILE ? 14 : 26;
+  for (let i = 0; i < n; i++) {
+    const m = new THREE.SpriteMaterial({ map: t, color: new THREE.Color('#fff1e2'), transparent: true, depthWrite: false, opacity: .75 });
+    const s = new THREE.Sprite(m);
+    const sc = 10 + Math.random() * 16;
+    s.scale.set(sc, sc * .55, 1);
+    s.position.set((Math.random() - .5) * 220, 9 + Math.random() * 7, (Math.random() - .5) * 220);
+    s.userData.v = .25 + Math.random() * .35;
+    scene.add(s); clouds.push(s);
+  }
+}
+
+/* ================================================================ */
+/*  Camera: hero orbit, then a flight from pin to pin               */
+/* ================================================================ */
+const look = new THREE.Vector3(), camPos = new THREE.Vector3();
+const shot = { x: 0, y: 0, z: 0, tx: 0, ty: 0, tz: 0 };       // tweened camera rig
+const HERO = (() => { const [x, z] = toXZ(-61.05, 10.72); const m = innerWidth / innerHeight < .8; return { x: x - 62, y: m ? 120 : 92, z: z + (m ? 150 : 128), tx: x + (m ? 4 : -22), ty: 0, tz: z - (m ? 10 : 4) }; })();
+const SHOT = WORK.map(w => {
+  const [x, z] = toXZ(w.lon, w.lat);
+  // Tobago is framed from the south-west so the whole island sits behind the pin
+  if (w.k === 'leeward') return { x: x - 14, y: 13, z: z + 18, tx: x + 6, ty: .4, tz: z - 4 };
+  return { x: x - 7, y: 10.5, z: z + 17, tx: x, ty: .6, tz: z };
+});
+const WIDE = (() => { const [x, z] = toXZ(-61.2, 10.7); return { x: x + 30, y: 120, z: z + 120, tx: x, ty: 0, tz: z - 6 }; })();
+Object.assign(shot, HERO);
+// scroll progress of the three camera moves (smoothed in the frame loop) + the intro descent offset
+const prog = { a: 0, b: 0, c: 0 }, sm = { a: 0, b: 0, c: 0 }, introOff = { y: 0, z: 0 };
+const ease = t => t * t * (3 - 2 * t);
+function rig(dt) {
+  for (const k in prog) sm[k] += (prog[k] - sm[k]) * (1 - Math.exp(-dt * 4));
+  const n = SHOT.length;
+  let A, B, t, arc = 0;
+  if (sm.c > .0005) { A = SHOT[n - 1]; B = WIDE; t = ease(Math.min(sm.c, 1)); }
+  else if (sm.b > .0005) { const f = Math.min(sm.b, 1) * (n - 1), i = Math.min(Math.floor(f), n - 2); A = SHOT[i]; B = SHOT[i + 1]; t = ease(f - i); arc = 1; }
+  else { A = HERO; B = SHOT[0]; t = ease(Math.min(sm.a, 1)); }
+  for (const k of ['x', 'y', 'z', 'tx', 'ty', 'tz']) shot[k] = A[k] + (B[k] - A[k]) * t;
+  // between projects the camera climbs over the ridges instead of skimming through them
+  if (arc) shot.y += Math.sin(Math.PI * t) * Math.hypot(B.x - A.x, B.z - A.z) * .35;
+  shot.y += introOff.y; shot.z += introOff.z;
+}
+const pointer = { x: 0, y: 0, sx: 0, sy: 0 };
+addEventListener('pointermove', e => { pointer.x = e.clientX / innerWidth * 2 - 1; pointer.y = e.clientY / innerHeight * 2 - 1; }, { passive: true });
+
+/* ---------- pins ---------- */
+const pinEls = WORK.map(w => {
+  const el = document.createElement('a');
+  el.className = 'pin'; el.href = w.url; el.target = '_blank'; el.rel = 'noopener';
+  el.innerHTML = `<span class="stem"></span><span class="dot"></span><span class="tag">${w.name}<small>${w.where}</small></span>`;
+  $('#pins').appendChild(el);
+  return el;
+});
+const tmp = new THREE.Vector3();
+function placePins() {
+  WORK.forEach((w, i) => {
+    const [x, z] = toXZ(w.lon, w.lat);
+    tmp.set(x, heightAt(x, z) + .05, z).project(camera);
+    const vis = tmp.z < 1 && Math.abs(tmp.x) < 1.2 && Math.abs(tmp.y) < 1.2;
+    const sx = (tmp.x * .5 + .5) * innerWidth, sy = (1 - (tmp.y * .5 + .5)) * innerHeight;
+    pinEls[i].style.transform = vis ? `translate3d(${sx}px,${sy}px,0)` : 'translate3d(-999px,-999px,0)';
+  });
+}
+
+/* ---------- loop ---------- */
+let last = performance.now() / 1000, t0 = last;
+function resize() { R.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.fov = innerWidth / innerHeight < .8 ? 50 : 36; camera.updateProjectionMatrix(); }
+resize(); addEventListener('resize', resize);
+function frame() {
+  const now = performance.now() / 1000, dt = Math.min(now - last, 1 / 20); last = now;
+  const t = now - t0;
+  rig(dt);
+  U.uTime.value = t;
+  pointer.sx += (pointer.x - pointer.sx) * (1 - Math.exp(-dt * 2.5));
+  pointer.sy += (pointer.y - pointer.sy) * (1 - Math.exp(-dt * 2.5));
+  // gentle drift + cursor parallax around the tweened rig
+  const drift = RM ? 0 : 1;
+  camPos.set(shot.x + Math.sin(t * .07) * 4 * drift + pointer.sx * 3 * drift, shot.y + Math.sin(t * .11) * 1.2 * drift - pointer.sy * 2 * drift, shot.z + Math.cos(t * .07) * 3 * drift);
+  const floor = heightAt(camPos.x, camPos.z) + 2.5;
+  if (camPos.y < floor) camPos.y = floor;
+  camera.position.copy(camPos);
+  look.set(shot.tx + pointer.sx * 1.5 * drift, shot.ty, shot.tz + pointer.sy * 1.2 * drift);
+  camera.lookAt(look);
+  for (const c of clouds) { c.position.x += c.userData.v * dt; if (c.position.x > 130) c.position.x = -130; }
+  R.render(scene, camera);
+  placePins();
+  $('#alt').textContent = `Altitude ${Math.round(camPos.y * 1000 / META.exag / 10) / 100} km`;
+}
+
+/* ================================================================ */
+/*  Boot: loader → hero reveal → scroll story                       */
+/* ================================================================ */
+function boot() {
+  gsap.ticker.add(frame);
+  let lenis = null;
+  if (!RM) {
+    lenis = new Lenis({ lerp: .085 });
+    lenis.on('scroll', ScrollTrigger.update);
+    gsap.ticker.add(time => lenis.raf(time * 1000));
+    gsap.ticker.lagSmoothing(0);
+    $$('a[href^="#"]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); lenis.scrollTo(a.getAttribute('href') === '#top' ? 0 : a.getAttribute('href'), { duration: 2.2 }); }));
+  }
+  document.fonts.ready.then(() => {
+    const splits = $$('.split').map(el => SplitText.create(el, { type: 'words', wordsClass: 'w', mask: 'words' }));
+    // loader out: the mark rises away, the camera descends from orbit
+    const intro = gsap.timeline({ onComplete: () => { document.body.classList.remove('loading'); ScrollTrigger.refresh(); } });
+    gsap.set(splits[0].words, { yPercent: 110 });
+    gsap.set(['.kick', '.hero-b', '.loc', '.nav'], { opacity: 0, y: 24 });
+    gsap.set('#pins', { opacity: 0 });
+    Object.assign(introOff, { y: 200, z: 140 });
+    intro.to('.ld', { opacity: 0, y: -30, duration: .6, ease: 'power3.in' }, .3)
+      .to('#loader', { opacity: 0, duration: .9, ease: 'power2.out', onComplete: () => $('#loader').remove() }, .7)
+      .to(introOff, { y: 0, z: 0, duration: 3.2, ease: 'expo.out' }, .6)
+      .to(splits[0].words, { yPercent: 0, duration: 1.4, ease: 'expo.out', stagger: .08 }, 1.2)
+      .fromTo('.h1 .u', { '--ul': 0 }, { '--ul': 1, duration: 1, ease: 'expo.out' }, 2)
+      .to(['.kick', '.hero-b', '.loc', '.nav'], { opacity: 1, y: 0, duration: 1.1, ease: 'expo.out', stagger: .08 }, 1.5)
+      .to('#pins', { opacity: 1, duration: 1 }, 2.4);
+    splits.slice(1).forEach(sp => gsap.from(sp.words, { yPercent: 110, duration: 1.2, ease: 'expo.out', stagger: .06, scrollTrigger: { trigger: sp.elements[0], start: 'top 85%' } }));
+    buildScroll();
+  });
+}
+
+/* ---------- the flight: pinned work section, one project per step ---------- */
+function setCard(i) {
+  const w = WORK[i];
+  $('#cShot').src = `assets/work/${w.k}-d.jpg`; $('#cPh').src = `assets/work/${w.k}-p.jpg`;
+  $('#cKind').textContent = w.kind; $('#cName').textContent = w.name; $('#cDesc').textContent = w.desc;
+  $('#cChips').innerHTML = w.chips.map(c => `<span>${c}</span>`).join('');
+  $('#cGo').href = w.url; $('#cLoc').textContent = w.where;
+  $('#cN').textContent = String(i + 1).padStart(2, '0');
+  $$('#cBars i').forEach((b, k) => b.classList.toggle('on', k === i));
+  pinEls.forEach((p, k) => p.classList.toggle('on', k === i));
+}
+function buildScroll() {
+  $('#cBars').innerHTML = WORK.map(() => '<i></i>').join('');
+  setCard(0);
+  const n = WORK.length;
+  ScrollTrigger.create({ trigger: '#work', start: 'top bottom', end: 'top top', onUpdate: self => { prog.a = self.progress; } });
+  let cur = 0;
+  ScrollTrigger.create({
+    trigger: '#work', start: 'top top', end: `+=${(n - 1) * 100}%`, pin: true,
+    onToggle(self) { document.body.classList.toggle('flying', self.isActive); },
+    onUpdate(self) {
+      prog.b = self.progress;
+      const i = Math.min(n - 1, Math.round(self.progress * (n - 1)));
+      if (i !== cur) {
+        cur = i;
+        gsap.timeline().to('#card', { y: 30, opacity: 0, duration: .25, ease: 'power2.in' }).add(() => setCard(i)).to('#card', { y: 0, opacity: 1, duration: .6, ease: 'expo.out' });
+      }
+    },
+  });
+  ScrollTrigger.create({ trigger: '.paper', start: 'top bottom', end: 'top top', onUpdate: self => { prog.c = self.progress; } });
+  gsap.from('#card', { y: 60, opacity: 0, duration: 1, ease: 'expo.out', scrollTrigger: { trigger: '#work', start: 'top 60%' } });
+  ScrollTrigger.create({ trigger: '.paper', start: 'top 80%', onEnter: () => gsap.to('#pins', { opacity: 0, duration: .4 }), onLeaveBack: () => gsap.to('#pins', { opacity: 1, duration: .4 }) });
+  // hide the nav on the way down
+  let lastY = 0;
+  ScrollTrigger.create({ start: 0, end: 'max', onUpdate: s => { const y = s.scroll(); $('#nav').classList.toggle('hide', y > lastY && y > 200); lastY = y; } });
+  // magnetic buttons
+  if (!RM && !MOBILE) $$('[data-mag]').forEach(el => {
+    const xTo = gsap.quickTo(el, 'x', { duration: .6, ease: 'elastic.out(1,.4)' }), yTo = gsap.quickTo(el, 'y', { duration: .6, ease: 'elastic.out(1,.4)' });
+    el.addEventListener('pointermove', e => { const r = el.getBoundingClientRect(); xTo((e.clientX - r.left - r.width / 2) * .3); yTo((e.clientY - r.top - r.height / 2) * .3); });
+    el.addEventListener('pointerleave', () => { xTo(0); yTo(0); });
+  });
+}
+</script>
+</body>
+</html>
