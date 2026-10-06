@@ -466,8 +466,9 @@ Promise.all([pSat, pNrm, pData, pHeight]).then(([sat, nrm, data, h]) => {
         vec3 c = mix(body, skyc, fres) + glint;
         // foam where swell meets the coast
         float shore = smoothstep(.035, .0, depth) * inside * (1. - land);
-        float fn = shore > .001 ? fbm(vW.xz * 4. + vec2(uTime * .25, 0.)) : 0.;
-        c = mix(c, vec3(.92), shore * smoothstep(.55, .85, fn + shore * .4) * .45);
+        // a soft, steady surf line: low-contrast and slow-moving so it can't shimmer frame to frame
+        float fn = shore > .001 ? vn(vW.xz * 1.6 + vec2(uTime * .02, 0.)) : 0.;
+        c = mix(c, vec3(.8, .86, .84), shore * (.12 + .1 * fn));
         // aerial perspective
         float f = 1. - exp(-pow(uFogD * dist, 2.));
         c = mix(c, uHaze * 1.05, f);
