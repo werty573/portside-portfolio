@@ -82,7 +82,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .loc b{color:#fff;font-weight:500}
 
 /* pins over the 3D map */
-#pins{position:fixed;inset:0;z-index:3;pointer-events:none}
+#pins{position:fixed;inset:0;z-index:2;pointer-events:none}
 body:not(.flying) #pins{visibility:hidden}
 .pin{position:absolute;left:0;top:0;transform:translate3d(-999px,-999px,0);will-change:transform;pointer-events:auto}
 .pin .dot{position:absolute;left:-7px;top:-7px;width:14px;height:14px;border-radius:50%;background:var(--coral);box-shadow:0 0 0 4px rgba(255,107,94,.28),0 0 24px rgba(255,107,94,.8)}
@@ -98,7 +98,8 @@ body:not(.flying) #pins{visibility:hidden}
 .pin.on .dot{background:#fff}
 
 /* work: pinned fly-through */
-.work{position:relative;z-index:2;height:100svh}
+.work{position:relative;z-index:3;height:100svh;pointer-events:none}
+.work .card{pointer-events:auto}
 .work-head{position:absolute;left:var(--pad);top:calc(var(--pad)*2.4)}
 .work-head h2{margin-top:14px;font:800 clamp(36px,4.6vw,72px)/.95 Sora;letter-spacing:-.045em}
 .work-head h2 i{font-style:normal;color:var(--teal)}
@@ -170,6 +171,7 @@ body:not(.flying) #pins{visibility:hidden}
   .card h3{font-size:26px}
   .card p{font-size:14px}
   .prog{top:calc(var(--pad)*4.4);bottom:auto}
+  #cLoc{display:none}
   .prog .n{font-size:30px}
   .price{grid-template-columns:1fr}
   .incl{grid-template-columns:1fr}
@@ -532,7 +534,15 @@ function placePins() {
 
 /* ---------- loop ---------- */
 let last = performance.now() / 1000, t0 = last, paperCovers = false;
-function resize() { R.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.fov = innerWidth / innerHeight < .8 ? 50 : 36; camera.updateProjectionMatrix(); }
+// on phones the card fills the lower screen, so the active pin is framed in the open sky between the heading and the card
+const frameOff = { cur: 0, goal: 0 };
+function measureGap() {
+  if (innerWidth / innerHeight >= .8) { frameOff.goal = 0; return; }
+  const head = $('.work-head'), card = $('#card');
+  const top = head.offsetTop + head.offsetHeight, bottom = innerHeight - 12 - card.offsetHeight;
+  frameOff.goal = innerHeight / 2 - (top + bottom) / 2 - 20;
+}
+function resize() { R.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.fov = innerWidth / innerHeight < .8 ? 50 : 36; measureGap(); camera.updateProjectionMatrix(); }
 resize(); addEventListener('resize', resize);
 function frame() {
   const now = performance.now() / 1000, dt = Math.min(now - last, 1 / 20); last = now;
@@ -549,6 +559,11 @@ function frame() {
   camera.position.copy(camPos);
   look.set(shot.tx + pointer.sx * 1.5 * drift, shot.ty, shot.tz + pointer.sy * 1.2 * drift);
   camera.lookAt(look);
+  // ease the framing in as the work section arrives and out as the pricing slides over
+  const inWork = Math.min(sm.a, 1) * (1 - Math.min(sm.c, 1));
+  frameOff.cur += (frameOff.goal * inWork - frameOff.cur) * (1 - Math.exp(-dt * 6));
+  if (Math.abs(frameOff.cur) > .5) camera.setViewOffset(innerWidth, innerHeight, 0, frameOff.cur, innerWidth, innerHeight);
+  else if (camera.view && camera.view.enabled) camera.clearViewOffset();
   for (const c of clouds) { c.position.x += c.userData.v * dt; if (c.position.x > 130) c.position.x = -130; }
   if (paperCovers) return;
   R.render(scene, camera);
@@ -599,6 +614,7 @@ function setCard(i) {
   $('#cN').textContent = String(i + 1).padStart(2, '0');
   $$('#cBars i').forEach((b, k) => b.classList.toggle('on', k === i));
   pinEls.forEach((p, k) => p.classList.toggle('on', k === i));
+  measureGap();
 }
 function buildScroll() {
   $('#cBars').innerHTML = WORK.map(() => '<i></i>').join('');
