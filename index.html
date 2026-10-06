@@ -286,7 +286,7 @@ const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [..
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const MOBILE = innerWidth < 820 || matchMedia('(pointer: coarse)').matches;
 const Q = new URLSearchParams(location.search);
-const DPR = Q.has('dpr') ? +Q.get('dpr') : Math.min(devicePixelRatio || 1, MOBILE ? 1.5 : 2);
+const DPR = Q.has('dpr') ? +Q.get('dpr') : Math.min(devicePixelRatio || 1, MOBILE ? 1.3 : 1.6);
 gsap.registerPlugin(ScrollTrigger, SplitText);
 
 /* ================================================================ */
@@ -321,7 +321,8 @@ R.toneMappingExposure = .62;
 R.shadowMap.enabled = !MOBILE;
 R.shadowMap.type = THREE.PCFSoftShadowMap;
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(36, 1, .1, 4000);
+// near plane at 1 km (the camera never gets closer than 2.5 km to the ground): ~10× more depth precision at the shoreline
+const camera = new THREE.PerspectiveCamera(36, 1, 1, 3600);
 
 // world: 1 unit = 1 km; heights exaggerated ×3.2 so the Northern Range reads from altitude
 const META = { bbox: [-61.93, 10.02, -60.47, 11.38], km: [159.7, 150.38], exag: 3.2 };
@@ -348,7 +349,7 @@ scene.fog = new THREE.FogExp2(haze, MOBILE ? .0026 : .0022);
 const sunLight = new THREE.DirectionalLight('#ffd9a8', 4.2);
 sunLight.position.copy(sun).multiplyScalar(200);
 sunLight.castShadow = !MOBILE;
-sunLight.shadow.mapSize.set(4096, 4096);
+sunLight.shadow.mapSize.set(2048, 2048);
 Object.assign(sunLight.shadow.camera, { left: -95, right: 95, top: 95, bottom: -95, near: 10, far: 500 });
 sunLight.shadow.bias = -.0004; sunLight.shadow.normalBias = .04;
 scene.add(sunLight, sunLight.target);
@@ -370,7 +371,7 @@ const CLOUDS = /* glsl */`
 float h21(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p+45.32); return fract(p.x*p.y); }
 float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f);
   return mix(mix(h21(i), h21(i+vec2(1,0)), f.x), mix(h21(i+vec2(0,1)), h21(i+vec2(1,1)), f.x), f.y); }
-float fbm(vec2 p){ float a = .5, s = 0.; for (int i = 0; i < 5; i++){ s += a*vn(p); p = p*2.03 + 17.1; a *= .5; } return s; }
+float fbm(vec2 p){ float a = .55, s = 0.; for (int i = 0; i < 3; i++){ s += a*vn(p); p = p*2.03 + 17.1; a *= .5; } return s; }
 float cloudShadow(vec2 xz, float t){ float c = fbm(xz*.045 + vec2(t*.012, t*.006)); return smoothstep(.56, .74, c); }`;
 
 /* ---------- terrain ---------- */
@@ -419,13 +420,24 @@ Promise.all([pSat, pNrm, pData, pHeight]).then(([sat, nrm, data, h]) => {
       uniform sampler2D tData; uniform vec2 uSize; uniform vec3 uSun, uHaze; uniform float uTime, uFogD;
       varying vec3 vW;
       ${CLOUDS}
-      vec2 wave(vec2 p, float t){
-        // two layers of value-noise ripples, differentiated for a normal
-        float e = .05;
-        float a = fbm(p*.9 + vec2(t*.08, t*.05)) + .5*fbm(p*2.7 - vec2(t*.11, -t*.07));
-        float bx = fbm((p+vec2(e,0.))*.9 + vec2(t*.08, t*.05)) + .5*fbm((p+vec2(e,0.))*2.7 - vec2(t*.11, -t*.07));
-        float bz = fbm((p+vec2(0.,e))*.9 + vec2(t*.08, t*.05)) + .5*fbm((p+vec2(0.,e))*2.7 - vec2(t*.11, -t*.07));
-        return vec2(bx - a, bz - a) / e;
+      // sum of directional swells and wind ripples, differentiated analytically; components fade out by
+      // distance before they can alias into sparkle
+      vec2 waveSlope(vec2 p, float t, float dist){
+        // 9 wave trains at uneven angles and frequencies (no two line up), each wobbling in phase, and a patchy
+        // gust mask so no regular pattern survives; each train fades by distance before it can alias
+        vec2 g = vec2(0.);
+        float gust = .45 + .9 * vn(p * .21 + vec2(t * .03, -t * .02));
+        for (int i = 0; i < 9; i++) {
+          float fi = float(i);
+          float ang = fi * 2.399 + .37;                       // golden-angle spread of directions
+          vec2 D = vec2(cos(ang), sin(ang));
+          float k = 1.1 * pow(1.53, fi);                       // 1.1 … 33 cycles per km
+          float a = .022 / pow(k, .5);
+          float fade = clamp(1. - dist * k / 2200., 0., 1.);
+          float ph = dot(D, p) * k + t * sqrt(k) * 1.3 + sin(dot(D.yx, p) * k * .37 + fi) * 1.7;
+          g += D * k * a * cos(ph) * fade;
+        }
+        return g * gust;
       }
       void main(){
         vec2 uv = (vW.xz + uSize*.5) / uSize;
@@ -434,11 +446,9 @@ Promise.all([pSat, pNrm, pData, pHeight]).then(([sat, nrm, data, h]) => {
         // fade the measured sea floor into open ocean before the data runs out, so there is no visible edge
         float edge = smoothstep(0., .3, min(min(uv.x, 1. - uv.x), min(uv.y, 1. - uv.y)));
         float depth = mix(.72, d.r, inside * edge), land = d.g * inside;
-        if (land > .5) discard;
         vec3 V = normalize(cameraPosition - vW);
         float dist = length(cameraPosition - vW);
-        // fine wind ripples on top of a long, low swell; both fade with distance so the far sea stays calm
-        vec2 sl = wave(vW.xz * 7., uTime * 1.6) * mix(.07, .012, smoothstep(10., 160., dist)) + wave(vW.xz * .55, uTime * .5) * .05;
+        vec2 sl = waveSlope(vW.xz, uTime, dist);
         vec3 Nn = normalize(vec3(-sl.x, 1., -sl.y));
         // body colour from real depth: turquoise shelf → teal → deep Atlantic blue
         vec3 shallow = vec3(.12, .62, .58), mid = vec3(.03, .28, .36), deep = vec3(.01, .07, .15);
@@ -456,7 +466,7 @@ Promise.all([pSat, pNrm, pData, pHeight]).then(([sat, nrm, data, h]) => {
         vec3 c = mix(body, skyc, fres) + glint;
         // foam where swell meets the coast
         float shore = smoothstep(.035, .0, depth) * inside * (1. - land);
-        float fn = fbm(vW.xz * 4. + vec2(uTime * .25, 0.));
+        float fn = shore > .001 ? fbm(vW.xz * 4. + vec2(uTime * .25, 0.)) : 0.;
         c = mix(c, vec3(.92), shore * smoothstep(.55, .85, fn + shore * .4) * .45);
         // aerial perspective
         float f = 1. - exp(-pow(uFogD * dist, 2.));
@@ -467,7 +477,7 @@ Promise.all([pSat, pNrm, pData, pHeight]).then(([sat, nrm, data, h]) => {
       }`,
   });
   water = new THREE.Mesh(wg, wm);
-  water.position.y = .006;   // ~2 m: covers the satellite's dark coastal fringe; land is cut out by the mask
+  water.position.y = 0;   // land sits ≥ 3 m above and the sea floor ≥ 4 m below, so the terrain itself draws the coastline
   scene.add(water);
   boot();
 });
@@ -550,7 +560,7 @@ function placePins() {
 }
 
 /* ---------- loop ---------- */
-let last = performance.now() / 1000, t0 = last;
+let last = performance.now() / 1000, t0 = last, paperCovers = false;
 function resize() { R.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.fov = innerWidth / innerHeight < .8 ? 50 : 36; camera.updateProjectionMatrix(); }
 resize(); addEventListener('resize', resize);
 function frame() {
@@ -569,6 +579,7 @@ function frame() {
   look.set(shot.tx + pointer.sx * 1.5 * drift, shot.ty, shot.tz + pointer.sy * 1.2 * drift);
   camera.lookAt(look);
   for (const c of clouds) { c.position.x += c.userData.v * dt; if (c.position.x > 130) c.position.x = -130; }
+  if (paperCovers) return;
   R.render(scene, camera);
   placePins();
   $('#alt').textContent = `Altitude ${Math.round(camPos.y * 1000 / META.exag / 10) / 100} km`;
@@ -637,6 +648,7 @@ function buildScroll() {
     },
   });
   ScrollTrigger.create({ trigger: '.paper', start: 'top bottom', end: 'top top', onUpdate: self => { prog.c = self.progress; } });
+  ScrollTrigger.create({ trigger: '.paper', start: 'top top', end: 'max', onToggle: self => { paperCovers = self.isActive; } });
   gsap.from('#card', { y: 60, opacity: 0, duration: 1, ease: 'expo.out', scrollTrigger: { trigger: '#work', start: 'top 60%' } });
   ScrollTrigger.create({ trigger: '.paper', start: 'top 80%', onEnter: () => gsap.to('#pins', { opacity: 0, duration: .4 }), onLeaveBack: () => gsap.to('#pins', { opacity: 1, duration: .4 }) });
   // hide the nav on the way down

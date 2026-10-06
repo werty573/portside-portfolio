@@ -106,7 +106,10 @@ for k in range(1, n + 1):
     comp = lab == k
     edge = comp[0].any() or comp[-1].any() or comp[:, 0].any() or comp[:, -1].any()
     if comp.sum() < 40 or (edge and comp.sum() < 20000): land[comp] = False
-dem = np.where(land, np.maximum(dem, 1.0), np.minimum(bathy, -2.0))
+    # patches that only the satellite called land and never rise above ~3 m are mud flats/mangrove fringe in the sea
+    elif comp.sum() < 4000 and dem[comp].max() < 3: land[comp] = False
+# a clear step at the shoreline (land ≥ +3 m, sea floor ≤ −4 m) so land and water never z-fight
+dem = np.where(land, np.maximum(dem, 3.0), np.minimum(bathy, -4.0))
 dem[venezuela] = np.minimum(dem[venezuela], -15)
 print('  merged range', dem.min().round(), dem.max().round(), 'land %', round(land.mean() * 100, 1))
 
