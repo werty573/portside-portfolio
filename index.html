@@ -102,7 +102,8 @@ body:not(.flying) #pins{visibility:hidden}
 
 /* work: pinned fly-through */
 .work{position:relative;z-index:3;height:100svh;pointer-events:none}
-.work .card{pointer-events:auto}
+.work .card{visibility:hidden;opacity:0;transform-origin:50% 100%;will-change:transform,opacity}
+.work .card.live{pointer-events:auto}
 .work-head{position:absolute;left:var(--pad);top:calc(var(--pad)*2.4)}
 .work-head{text-shadow:0 2px 24px rgba(7,21,40,.7)}
 .work-head h2{margin-top:14px;font:800 clamp(36px,4.6vw,72px)/.95 Sora;letter-spacing:-.045em}
@@ -110,7 +111,7 @@ body:not(.flying) #pins{visibility:hidden}
 .card{position:absolute;left:var(--pad);bottom:var(--pad);width:min(470px,calc(100vw - var(--pad)*2));border-radius:26px;background:rgba(7,21,40,.72);border:1px solid var(--line);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.45)}
 .card .shot{position:relative;height:250px;overflow:hidden;background:linear-gradient(160deg,#12305a,#0b1f3a)}
 .card .shot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top;will-change:transform,opacity}
-.card{will-change:transform;contain:layout paint}
+.card{contain:layout paint}
 .card .shot .ph{position:absolute;right:16px;bottom:-40px;width:96px;height:auto;aspect-ratio:9/19.5;object-fit:cover;object-position:top;border-radius:16px;border:5px solid #0d0d10;box-shadow:0 14px 34px rgba(0,0,0,.5);left:auto;top:auto}
 .card .body{padding:22px 24px 24px}
 .card .meta{display:flex;justify-content:space-between;font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
@@ -257,16 +258,7 @@ body:not(.flying) #pins{visibility:hidden}
 
   <section class="work" id="work">
     <div class="work-head"><p class="kick">The work</p><h2>Seven builds,<br><i>one island nation.</i></h2></div>
-    <article class="card" id="card">
-      <div class="shot"><img id="cShot" alt=""><img class="ph" id="cPh" alt=""></div>
-      <div class="body">
-        <div class="meta"><span id="cKind"></span><span class="cb">Concept build</span></div>
-        <h3 id="cName"></h3>
-        <p id="cDesc"></p>
-        <div class="chips" id="cChips"></div>
-        <a class="go" id="cGo" target="_blank" rel="noopener" data-mag>Open the live site ↗</a>
-      </div>
-    </article>
+    <div id="cards"></div>
     <div class="prog"><span id="cLoc"></span><span class="n" id="cN">01</span><div class="bars" id="cBars"></div></div>
   </section>
 </main>
@@ -592,9 +584,12 @@ function adapt(dt) {
 }
 // on phones the card fills the lower screen, so the active pin is framed in the open sky between the heading and the card
 const frameOff = { cur: 0, goal: 0 };
+const cards = [];
+let active = -1, cardF = null;
 function measureGap() {
   if (innerWidth / innerHeight >= .8) { frameOff.goal = 0; return; }
-  const head = $('.work-head'), card = $('#card');
+  const head = $('.work-head'), card = cards[active];
+  if (!card) return;
   const top = head.offsetTop + head.offsetHeight, bottom = innerHeight - 12 - card.offsetHeight;
   frameOff.goal = innerHeight / 2 - (top + bottom) / 2 - 20;
 }
@@ -621,6 +616,7 @@ function frame() {
   if (Math.abs(frameOff.cur) > .5) camera.setViewOffset(innerWidth, innerHeight, 0, frameOff.cur, innerWidth, innerHeight);
   else if (camera.view && camera.view.enabled) camera.clearViewOffset();
   for (const c of clouds) { c.position.x += c.userData.v * dt; if (c.position.x > 130) c.position.x = -130; }
+  placeCards();
   if (paperCovers) return;
   R.render(scene, camera);
   placePins();
@@ -635,7 +631,7 @@ function boot() {
   gsap.ticker.add(frame);
   let lenis = null;
   if (!RM) {
-    lenis = new Lenis({ lerp: .085 });
+    lenis = new Lenis({ lerp: .085, syncTouch: true, syncTouchLerp: .085 });
     lenis.on('scroll', ScrollTrigger.update);
     gsap.ticker.add(time => lenis.raf(time * 1000));
     gsap.ticker.lagSmoothing(0);
@@ -662,62 +658,73 @@ function boot() {
 }
 
 /* ---------- the flight: pinned work section, one project per step ---------- */
-// every screenshot is fetched and decoded up front, so a card switch never waits on an image
-const imgCache = {};
-function preloadShots() {
-  WORK.forEach(w => ['d', 'p'].forEach(v => { const im = new Image(); im.decoding = 'async'; im.src = `assets/work/${w.k}-${v}.jpg`; imgCache[im.src] = im; im.decode?.().catch(() => {}); }));
+// one card per project, all stacked in place; scroll position decides which is showing.
+// Between two projects the next card rises up from the bottom while the current one sinks back,
+// and it follows the (smoothed) scroll, so stopping halfway leaves them halfway.
+function buildCards() {
+  $('#cards').innerHTML = WORK.map(w => `<article class="card">
+      <div class="shot"><img src="assets/work/${w.k}-d.jpg" alt="${w.name} website on a laptop" decoding="async"><img class="ph" src="assets/work/${w.k}-p.jpg" alt="" decoding="async"></div>
+      <div class="body">
+        <div class="meta"><span>${w.kind}</span><span class="cb">Concept build</span></div>
+        <h3>${w.name}</h3>
+        <p>${w.desc}</p>
+        <div class="chips">${w.chips.map(c => `<span>${c}</span>`).join('')}</div>
+        <a class="go" href="${w.url}" target="_blank" rel="noopener" data-mag>Open the live site ↗</a>
+      </div>
+    </article>`).join('');
+  cards.push(...$$('#cards .card'));
+  cards.forEach((c, k) => { c.style.zIndex = k + 1; c._st = ''; });
 }
-let swapTl = null;
-function swapCard(i) {
-  swapTl?.kill();
-  const card = $('#card'), parts = ['#cShot', '#cPh', '.card .meta', '#cName', '#cDesc', '#cChips', '#cGo'];
-  const h0 = card.offsetHeight;
-  swapTl = gsap.timeline()
-    .to(parts, { autoAlpha: 0, y: -10, duration: .18, ease: 'power2.in', stagger: .015, overwrite: true })
-    .add(() => {
-      gsap.killTweensOf(card); card.style.height = '';
-      setCard(i);
-      const h1 = card.offsetHeight;
-      if (Math.abs(h1 - h0) > 1) gsap.fromTo(card, { height: h0 }, { height: h1, duration: .45, ease: 'expo.out', clearProps: 'height' });
-    })
-    .fromTo('#cShot', { autoAlpha: 0, scale: 1.06, y: 0 }, { autoAlpha: 1, scale: 1, duration: .6, ease: 'expo.out' })
-    .fromTo('#cPh', { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, duration: .55, ease: 'expo.out' }, '<.06')
-    .fromTo(parts.slice(2), { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: .5, ease: 'expo.out', stagger: .035 }, '<.02');
-}
-function setCard(i) {
+function setActive(i) {
+  if (i === active) return;
+  active = i;
   const w = WORK[i];
-  $('#cShot').src = `assets/work/${w.k}-d.jpg`; $('#cPh').src = `assets/work/${w.k}-p.jpg`;
-  $('#cKind').textContent = w.kind; $('#cName').textContent = w.name; $('#cDesc').textContent = w.desc;
-  $('#cChips').innerHTML = w.chips.map(c => `<span>${c}</span>`).join('');
-  $('#cGo').href = w.url; $('#cLoc').textContent = w.where;
+  $('#cLoc').textContent = w.where;
   $('#cN').textContent = String(i + 1).padStart(2, '0');
   $$('#cBars i').forEach((b, k) => b.classList.toggle('on', k === i));
   pinEls.forEach((p, k) => p.classList.toggle('on', k === i));
+  cards.forEach((c, k) => c.classList.toggle('live', k === i));
   measureGap();
+}
+const clamp01 = x => x < 0 ? 0 : x > 1 ? 1 : x;
+function placeCards() {
+  const n = cards.length;
+  if (!n) return;
+  // f: continuous position along the projects; -1 → 0 while the section scrolls into view
+  const f = sm.b > .0005 ? Math.min(sm.b, 1) * (n - 1) : Math.min(sm.a, 1) - 1;
+  if (cardF !== null && Math.abs(f - cardF) < 1e-4) return;
+  cardF = f;
+  const i = Math.floor(f), t = ease(clamp01((f - i - .18) / .64));
+  const rise = Math.min(innerHeight * .75, 640);
+  cards.forEach((c, k) => {
+    let st = 'hidden';
+    if (k === i) {                                               // current card: sinks back as the next one arrives
+      st = `translate3d(0,${(-t * 28).toFixed(2)}px,0) scale(${(1 - t * .07).toFixed(4)})|${(1 - t * 1.1).toFixed(3)}`;
+    } else if (k === i + 1) {                                    // next card: rises up from below
+      st = `translate3d(0,${((1 - t) * rise).toFixed(2)}px,0) scale(1)|${clamp01(t * 2.2).toFixed(3)}`;
+    }
+    if (st === c._st) return;
+    c._st = st;
+    if (st === 'hidden' || +st.split('|')[1] <= 0) { c.style.visibility = 'hidden'; return; }
+    const [tr, op] = st.split('|');
+    c.style.visibility = 'visible'; c.style.transform = tr; c.style.opacity = op;
+  });
+  setActive(Math.max(0, Math.min(n - 1, t < .5 ? i : i + 1)));
 }
 function buildScroll() {
   $('#cBars').innerHTML = WORK.map(() => '<i></i>').join('');
-  preloadShots();
-  setCard(0);
+  buildCards();
+  setActive(0);
   ScrollTrigger.config({ ignoreMobileResize: true });   // the phone's address bar showing/hiding must not re-layout the pinned section
   const n = WORK.length;
   ScrollTrigger.create({ trigger: '#work', start: 'top bottom', end: 'top top', onUpdate: self => { prog.a = self.progress; } });
-  let cur = 0;
   ScrollTrigger.create({
     trigger: '#work', start: 'top top', end: `+=${(n - 1) * 100}%`, pin: true,
     onToggle(self) { document.body.classList.toggle('flying', self.isActive); },
-    onUpdate(self) {
-      prog.b = self.progress;
-      const i = Math.min(n - 1, Math.round(self.progress * (n - 1)));
-      if (i !== cur) {
-        cur = i;
-        swapCard(i);
-      }
-    },
+    onUpdate(self) { prog.b = self.progress; },
   });
   ScrollTrigger.create({ trigger: '.paper', start: 'top bottom', end: 'top top', onUpdate: self => { prog.c = self.progress; } });
   ScrollTrigger.create({ trigger: '.paper', start: 'top top', end: 'max', onToggle: self => { paperCovers = self.isActive; } });
-  gsap.from('#card', { y: 60, opacity: 0, duration: 1, ease: 'expo.out', scrollTrigger: { trigger: '#work', start: 'top 60%' } });
   ScrollTrigger.create({ trigger: '.paper', start: 'top 80%', onEnter: () => gsap.to('#pins', { opacity: 0, duration: .4 }), onLeaveBack: () => gsap.to('#pins', { opacity: 1, duration: .4 }) });
   // hide the nav on the way down
   let lastY = 0;
