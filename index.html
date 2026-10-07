@@ -57,7 +57,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .nav{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;justify-content:space-between;align-items:center;padding:calc(var(--pad)*.6) var(--pad);transition:transform .7s var(--silk)}
 .nav.hide{transform:translateY(-120%)}
 .nav::before{content:'';position:absolute;inset:0;z-index:-1;background:rgba(7,21,40,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line);opacity:0;transition:opacity .4s}
-.nav.solid::before{opacity:1}
+@media (max-width:820px){.nav.solid::before{opacity:1}}
 .logo{display:flex;align-items:center;gap:12px;font:800 22px/1 Sora,sans-serif;letter-spacing:-.04em}
 .logo svg{width:24px;height:27px}
 .logo i{font-style:normal;color:var(--teal)}
@@ -108,8 +108,9 @@ body:not(.flying) #pins{visibility:hidden}
 .work-head h2{margin-top:14px;font:800 clamp(36px,4.6vw,72px)/.95 Sora;letter-spacing:-.045em}
 .work-head h2 i{font-style:normal;color:var(--teal)}
 .card{position:absolute;left:var(--pad);bottom:var(--pad);width:min(470px,calc(100vw - var(--pad)*2));border-radius:26px;background:rgba(7,21,40,.72);border:1px solid var(--line);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.45)}
-.card .shot{position:relative;height:250px;overflow:hidden;background:#000}
-.card .shot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top}
+.card .shot{position:relative;height:250px;overflow:hidden;background:linear-gradient(160deg,#12305a,#0b1f3a)}
+.card .shot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top;will-change:transform,opacity}
+.card{will-change:transform;contain:layout paint}
 .card .shot .ph{position:absolute;right:16px;bottom:-40px;width:96px;height:auto;aspect-ratio:9/19.5;object-fit:cover;object-position:top;border-radius:16px;border:5px solid #0d0d10;box-shadow:0 14px 34px rgba(0,0,0,.5);left:auto;top:auto}
 .card .body{padding:22px 24px 24px}
 .card .meta{display:flex;justify-content:space-between;font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
@@ -204,6 +205,15 @@ body:not(.flying) #pins{visibility:hidden}
   .prog{top:80px}
 }
 @media (max-width:820px) and (max-height:700px){.card .chips{display:none}}
+/* phones: blurring the moving map behind the card, pins and nav every frame is the main cost; solid panels look the same */
+@media (max-width:820px),(pointer:coarse){
+  .grain{display:none}
+  .card{background:rgba(9,24,46,.94);backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:0 20px 50px rgba(0,0,0,.4)}
+  .pin .tag{background:rgba(7,21,40,.9);backdrop-filter:none;-webkit-backdrop-filter:none}
+  .nav::before{background:rgba(7,21,40,.94);backdrop-filter:none;-webkit-backdrop-filter:none}
+  .btn-ghost{backdrop-filter:none;background:rgba(7,21,40,.6)}
+  .pin .dot::after{animation-duration:3s}
+}
 @media (prefers-reduced-motion:reduce){.grain,.pin .dot::after{animation:none}}
 </style>
 </head>
@@ -548,21 +558,38 @@ const pinEls = WORK.map(w => {
   return el;
 });
 const tmp = new THREE.Vector3(), tagEls = pinEls.map(el => el.querySelector('.tag'));
+// pin ground points and label widths are fixed, so they are worked out once (no layout reads inside the frame loop)
+let pinPts = [], tagW = [];
+const pinState = WORK.map(() => ({ tr: '', left: '' }));
+function measureTags() { tagW = tagEls.map(t => t.offsetWidth * 1.08); }
 function placePins() {
-  WORK.forEach((w, i) => {
-    const [x, z] = toXZ(w.lon, w.lat);
-    tmp.set(x, heightAt(x, z) + .05, z).project(camera);
+  if (!document.body.classList.contains('flying')) return;
+  if (!pinPts.length && heights) pinPts = WORK.map(w => { const [x, z] = toXZ(w.lon, w.lat); return new THREE.Vector3(x, heightAt(x, z) + .05, z); });
+  if (!tagW.length) measureTags();
+  pinPts.forEach((pt, i) => {
+    tmp.copy(pt).project(camera);
     const vis = tmp.z < 1 && Math.abs(tmp.x) < 1.2 && Math.abs(tmp.y) < 1.2;
     const sx = (tmp.x * .5 + .5) * innerWidth, sy = (1 - (tmp.y * .5 + .5)) * innerHeight;
-    pinEls[i].style.transform = vis ? `translate3d(${sx}px,${sy}px,0)` : 'translate3d(-999px,-999px,0)';
-    // keep the label fully on screen: it normally opens to the right of the pin, and slides left near the edge
-    const tag = tagEls[i], tw = tag.offsetWidth * 1.08;
-    tag.style.left = Math.round(Math.max(8 - sx, Math.min(12, innerWidth - 10 - sx - tw))) + 'px';
+    const tr = vis ? `translate3d(${sx.toFixed(1)}px,${sy.toFixed(1)}px,0)` : 'translate3d(-999px,-999px,0)';
+    // keep the label fully on screen: it opens to the right of the pin, and slides left near the edge
+    const left = Math.round(Math.max(8 - sx, Math.min(12, innerWidth - 10 - sx - tagW[i]))) + 'px';
+    const st = pinState[i];
+    if (st.tr !== tr) { pinEls[i].style.transform = tr; st.tr = tr; }
+    if (vis && st.left !== left) { tagEls[i].style.left = left; st.left = left; }
   });
 }
 
 /* ---------- loop ---------- */
-let last = performance.now() / 1000, t0 = last, paperCovers = false;
+let last = performance.now() / 1000, t0 = last, paperCovers = false, altTxt = '';
+const altEl = $('#alt');
+// adaptive resolution: if the device can't hold ~50 fps, render fewer pixels (the toon look hides it well)
+let pr = DPR, slow = 0, fast = 0;
+function adapt(dt) {
+  if (Q.has('dpr')) return;
+  if (dt > 1 / 45) { slow++; fast = 0; } else { fast++; slow = Math.max(0, slow - 1); }
+  if (slow > 20 && pr > .75) { pr = Math.max(.75, pr - .15); R.setPixelRatio(pr); slow = 0; }
+  else if (fast > 240 && pr < DPR) { pr = Math.min(DPR, pr + .1); R.setPixelRatio(pr); fast = 0; }
+}
 // on phones the card fills the lower screen, so the active pin is framed in the open sky between the heading and the card
 const frameOff = { cur: 0, goal: 0 };
 function measureGap() {
@@ -571,7 +598,7 @@ function measureGap() {
   const top = head.offsetTop + head.offsetHeight, bottom = innerHeight - 12 - card.offsetHeight;
   frameOff.goal = innerHeight / 2 - (top + bottom) / 2 - 20;
 }
-function resize() { R.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.fov = innerWidth / innerHeight < .8 ? 50 : 36; measureGap(); camera.updateProjectionMatrix(); }
+function resize() { tagW = []; R.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.fov = innerWidth / innerHeight < .8 ? 50 : 36; measureGap(); camera.updateProjectionMatrix(); }
 resize(); addEventListener('resize', resize);
 function frame() {
   const now = performance.now() / 1000, dt = Math.min(now - last, 1 / 20); last = now;
@@ -597,7 +624,8 @@ function frame() {
   if (paperCovers) return;
   R.render(scene, camera);
   placePins();
-  $('#alt').textContent = `Altitude ${Math.round(camPos.y * 1000 / META.exag / 10) / 100} km`;
+  if (sm.a < 1) { const a = `Altitude ${Math.round(camPos.y * 1000 / META.exag / 10) / 100} km`; if (a !== altTxt) { altEl.textContent = a; altTxt = a; } }
+  adapt(dt);
 }
 
 /* ================================================================ */
@@ -634,6 +662,28 @@ function boot() {
 }
 
 /* ---------- the flight: pinned work section, one project per step ---------- */
+// every screenshot is fetched and decoded up front, so a card switch never waits on an image
+const imgCache = {};
+function preloadShots() {
+  WORK.forEach(w => ['d', 'p'].forEach(v => { const im = new Image(); im.decoding = 'async'; im.src = `assets/work/${w.k}-${v}.jpg`; imgCache[im.src] = im; im.decode?.().catch(() => {}); }));
+}
+let swapTl = null;
+function swapCard(i) {
+  swapTl?.kill();
+  const card = $('#card'), parts = ['#cShot', '#cPh', '.card .meta', '#cName', '#cDesc', '#cChips', '#cGo'];
+  const h0 = card.offsetHeight;
+  swapTl = gsap.timeline()
+    .to(parts, { autoAlpha: 0, y: -10, duration: .18, ease: 'power2.in', stagger: .015, overwrite: true })
+    .add(() => {
+      gsap.killTweensOf(card); card.style.height = '';
+      setCard(i);
+      const h1 = card.offsetHeight;
+      if (Math.abs(h1 - h0) > 1) gsap.fromTo(card, { height: h0 }, { height: h1, duration: .45, ease: 'expo.out', clearProps: 'height' });
+    })
+    .fromTo('#cShot', { autoAlpha: 0, scale: 1.06, y: 0 }, { autoAlpha: 1, scale: 1, duration: .6, ease: 'expo.out' })
+    .fromTo('#cPh', { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, duration: .55, ease: 'expo.out' }, '<.06')
+    .fromTo(parts.slice(2), { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: .5, ease: 'expo.out', stagger: .035 }, '<.02');
+}
 function setCard(i) {
   const w = WORK[i];
   $('#cShot').src = `assets/work/${w.k}-d.jpg`; $('#cPh').src = `assets/work/${w.k}-p.jpg`;
@@ -647,7 +697,9 @@ function setCard(i) {
 }
 function buildScroll() {
   $('#cBars').innerHTML = WORK.map(() => '<i></i>').join('');
+  preloadShots();
   setCard(0);
+  ScrollTrigger.config({ ignoreMobileResize: true });   // the phone's address bar showing/hiding must not re-layout the pinned section
   const n = WORK.length;
   ScrollTrigger.create({ trigger: '#work', start: 'top bottom', end: 'top top', onUpdate: self => { prog.a = self.progress; } });
   let cur = 0;
@@ -659,7 +711,7 @@ function buildScroll() {
       const i = Math.min(n - 1, Math.round(self.progress * (n - 1)));
       if (i !== cur) {
         cur = i;
-        gsap.timeline().to('#card', { y: 30, opacity: 0, duration: .25, ease: 'power2.in' }).add(() => setCard(i)).to('#card', { y: 0, opacity: 1, duration: .6, ease: 'expo.out' });
+        swapCard(i);
       }
     },
   });
