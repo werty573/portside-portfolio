@@ -631,7 +631,7 @@ function boot() {
   gsap.ticker.add(frame);
   let lenis = null;
   if (!RM) {
-    lenis = new Lenis({ lerp: .085, syncTouch: true, syncTouchLerp: .085 });
+    lenis = new Lenis({ lerp: .085, syncTouch: true, syncTouchLerp: .085, touchInertiaMultiplier: 20 });
     lenis.on('scroll', ScrollTrigger.update);
     gsap.ticker.add(time => lenis.raf(time * 1000));
     gsap.ticker.lagSmoothing(0);
@@ -653,7 +653,7 @@ function boot() {
       .to(['.kick', '.hero-b', '.loc', '.nav'], { opacity: 1, y: 0, duration: 1.1, ease: 'expo.out', stagger: .08 }, 1.5)
       .to('#pins', { opacity: 1, duration: 1 }, 2.4);
     splits.slice(1).forEach(sp => gsap.from(sp.words, { yPercent: 110, duration: 1.2, ease: 'expo.out', stagger: .06, scrollTrigger: { trigger: sp.elements[0], start: 'top 85%' } }));
-    buildScroll();
+    buildScroll(lenis);
   });
 }
 
@@ -711,18 +711,40 @@ function placeCards() {
   });
   setActive(Math.max(0, Math.min(n - 1, t < .5 ? i : i + 1)));
 }
-function buildScroll() {
+// inside the flight, a scroll always settles on a project, and one swipe moves at most one project
+function snapToProjects(lenis, st, n) {
+  let touching = false, from = 0, snapping = false, wheelIdle = null;
+  const begin = () => { if (!snapping) from = active; };
+  function settle() {
+    if (touching || snapping || wheelIdle) return;
+    const y = lenis.scroll;
+    if (y < st.start - 2 || y > st.end + 2 || Math.abs(lenis.velocity) > 1.2) return;   // outside the flight, or still gliding fast
+    const f = (y - st.start) / (st.end - st.start) * (n - 1);
+    // a deliberate push (a fifth of the way) is enough to go to the neighbour in that direction
+    const d = f - from, k = Math.max(0, Math.min(n - 1, d > .2 ? from + 1 : d < -.2 ? from - 1 : from));
+    const target = st.start + (st.end - st.start) * k / (n - 1);
+    if (Math.abs(target - y) < 2) { from = k; return; }
+    snapping = true;
+    lenis.scrollTo(target, { duration: .75, easing: t => 1 - Math.pow(1 - t, 3), onComplete: () => { snapping = false; from = k; } });
+  }
+  addEventListener('touchstart', () => { touching = true; begin(); }, { passive: true });
+  addEventListener('touchend', () => { touching = false; setTimeout(settle, 60); }, { passive: true });
+  addEventListener('wheel', () => { if (!wheelIdle) begin(); clearTimeout(wheelIdle); wheelIdle = setTimeout(() => { wheelIdle = null; settle(); }, 220); }, { passive: true });
+  lenis.on('scroll', settle);
+}
+function buildScroll(lenis) {
   $('#cBars').innerHTML = WORK.map(() => '<i></i>').join('');
   buildCards();
   setActive(0);
   ScrollTrigger.config({ ignoreMobileResize: true });   // the phone's address bar showing/hiding must not re-layout the pinned section
   const n = WORK.length;
   ScrollTrigger.create({ trigger: '#work', start: 'top bottom', end: 'top top', onUpdate: self => { prog.a = self.progress; } });
-  ScrollTrigger.create({
+  const workST = ScrollTrigger.create({
     trigger: '#work', start: 'top top', end: `+=${(n - 1) * 100}%`, pin: true,
     onToggle(self) { document.body.classList.toggle('flying', self.isActive); },
     onUpdate(self) { prog.b = self.progress; },
   });
+  if (lenis) snapToProjects(lenis, workST, n);
   ScrollTrigger.create({ trigger: '.paper', start: 'top bottom', end: 'top top', onUpdate: self => { prog.c = self.progress; } });
   ScrollTrigger.create({ trigger: '.paper', start: 'top top', end: 'max', onToggle: self => { paperCovers = self.isActive; } });
   ScrollTrigger.create({ trigger: '.paper', start: 'top 80%', onEnter: () => gsap.to('#pins', { opacity: 0, duration: .4 }), onLeaveBack: () => gsap.to('#pins', { opacity: 1, duration: .4 }) });
