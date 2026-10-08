@@ -10,7 +10,8 @@ The site to send to clients: a 3D, real-data model of **Trinidad & Tobago** you 
   - A posterised sea whose bands follow the real bathymetry, with a white coastline outline and wave dashes.
   - It only loads about 0.75 MB of map data (`height.bin` + `data.png`), with no shadows, no environment map and no satellite texture, so it stays light on phones.
 - **Scroll story** (GSAP ScrollTrigger + Lenis). The camera descends from orbit and flies pin to pin, climbing over ridges between projects. Each project has a card with screenshots, features and a link to the live site.
-- The seven concept builds: MAREA, Soda, Tamarind Table, Gloss Lab, Leeward House, Pulse Yard and Gilded Hour.
+- The ten concept builds: Tamarind Table, Verbena Clinic, MAREA, Gilded Hour, Soda, Sereine Skin Studio, Gloss Lab, Pulse Yard, Meridian Watch Co. and Leeward House.
+- Card screenshots live in `assets/work/` (`<key>-d.jpg` 1200×750, `<key>-p.jpg` 480×1039). `node tools/capture-work.mjs <key> <live-url>` captures both.
 - Mobile layout with lighter assets (2K imagery, half-res mesh, no shadows). Respects `prefers-reduced-motion`.
 
 ## Run it
