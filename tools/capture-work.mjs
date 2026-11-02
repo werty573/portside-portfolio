@@ -7,7 +7,7 @@ const shoot = async (vp, scale, file) => {
   const p = await b.newPage({ viewport: vp, deviceScaleFactor: scale, isMobile: vp.width < 600, hasTouch: vp.width < 600 });
   await p.goto(url, { waitUntil: 'networkidle' });
   await p.waitForTimeout(7000); // let the intro finish
-  await p.addStyleTag({ content: '.pd-ribbon,.dock,.toast{display:none!important}' });
+  await p.addStyleTag({ content: '.pd-ribbon,.dock,.toast,.concept{display:none!important}' });
   await p.screenshot({ path: file, type: 'jpeg', quality: 82 });
   await p.close();
 };
